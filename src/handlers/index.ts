@@ -40,7 +40,7 @@ export const createAccount = async (req: Request, res: Response) => {
 }
 
 export const login = async (req: Request, res: Response) => {
-    
+
     const { email, password } = req.body
 
     // REVISAR SI EL USUARIO ESTA REGISTRADO
@@ -50,17 +50,51 @@ export const login = async (req: Request, res: Response) => {
         res.status(404).json({ error: error.message })
         return
     }
-    
+
     // COMPROBAR PASSWORD
     const isPasswordCorrect = await checkPassword(password, user.password)
-    if(!isPasswordCorrect) {
+    if (!isPasswordCorrect) {
         const error = new Error('Password Incorrecto')
         res.status(401).json({ error: error.message })
         return
     }
 
-    const token = generateJWT({id: user._id})
+    const token = generateJWT({ id: user._id })
 
     res.send(token)
 
 }
+
+export const getUser = async (req: Request, res: Response) => {
+    res.json(req.user)
+}
+
+export const updateProfile = async (req: Request, res: Response) => {
+    
+    try {
+
+        const { description } = req.body
+
+        const handle = slug(req.body.handle, '')
+        const handleExist = await User.findOne({ handle })
+        if (handleExist && handleExist.email !== req.user.email) {
+            const error = new Error('Nombre de usuario no disponible')
+            res.status(409).json({ error: error.message })
+            return
+        }
+
+        // ACTUALIZAR USUARIO
+        req.user.handle = handle
+        req.user.description = description
+        await req.user.save()
+        res.send('Perfil actualizado correctamente')
+
+
+    } catch (e) {
+        const error = new Error('Hubo un error')
+        res.status(500).json({error: error.message})
+        return
+    }
+
+}
+
